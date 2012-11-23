@@ -18,7 +18,9 @@ module Haste
         @input = STDIN.readlines.join
       end
       # clean up
-      @input.strip!
+      if not file
+        @input.strip!
+      end
     end
 
     # Upload the and output the URL we get back
@@ -29,7 +31,12 @@ module Haste
       if response.is_a?(Net::HTTPOK)
         data = JSON.parse(response.body)
         method = STDOUT.tty? ? :puts : :print
-        STDOUT.send method, "#{server}/#{data['key']}"
+        if file && is_image?(file)
+          response_string = "#{options[:url]}/raw/#{data['key']}"
+        else
+          response_string = "#{server}/#{data['key']}"
+        end
+        STDOUT.send method, response_string
       else
         abort "failure uploading: #{response.code}"
       end
@@ -46,6 +53,15 @@ module Haste
       @server = (ENV['HASTE_SERVER'] || Haste::DEFAULT_URL).dup
       @server.chop! if server.end_with?('/')
       @server
+    end
+
+    def is_image?(filepath)
+      mimetype = `file --mime-type #{filepath}`.strip
+      if mimetype.include? "image"
+        return true
+      else
+        return false
+      end
     end
 
   end
